@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#9aa0a6">
+<title>نظام محاسبة — نسخة الجوال (v21)</title>
+<style>
+  :root{ --primary:#9aa0a6; --success:#198754; --danger:#dc3545; --muted:#6c757d; }
+  *{box-sizing:border-box}
+  body{font-family:Tahoma, Arial, sans-serif;margin:0;background:#f6f7fb;color:#111}
+  header{position:sticky;top:0;background:var(--primary);color:#fff;padding:10px 12px;z-index:10}
+  header h1{font-size:18px;margin:0 0 4px}
+  header .sub{font-size:13px;opacity:.95}
+  main{padding:12px 12px 90px;max-width:950px;margin:auto}
+  .card{background:#fff;border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+  label{font-size:14px;color:#333}
+  input, select, textarea, button{width:100%;padding:12px 12px;border:1px solid #e5e7eb;border-radius:12px;font-size:16px}
+  input[type="text"].slim{padding:10px 12px;height:42px}
+  button{border:none}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;padding:10px 14px;font-size:14px}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-success{background:var(--success);color:#fff}
+  .btn-muted{background:var(--muted);color:#fff}
+  .btn-danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .col{flex:1;min-width:180px}
+  .hint{font-size:12px;color:#555;margin-top:6px}
+  .summary{background:var(--primary);color:#fff;padding:6px 10px;border-radius:10px;display:inline-block;margin-top:8px}
+  .list{margin-top:8px}
+  .item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+  .item:last-child{border-bottom:none}
+  .item .meta{flex:1}
+  .kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+  .kpi .box{background:#f1f5ff;border:1px solid #e5edff;border-radius:12px;padding:10px;text-align:center}
+  .kpi .box b{display:block;font-size:16px}
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;display:flex;flex-wrap:wrap}
+  .tab{flex:1;text-align:center;padding:10px 6px;font-size:12px}
+  .tab button{width:100%;border-radius:0;border:none;background:#fff;padding:10px 0}
+  .tab.active{background:#f0f2f7}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{border:1px solid #eee;padding:8px;text-align:center;font-size:14px}
+  th{background:#f9fbff}
+  .subtle{background:#fafbff;border:1px solid #eef1ff;border-radius:12px;padding:10px;margin-top:8px}
+  details summary{cursor:pointer;font-weight:bold}
+  .inline{display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>نظام محاسبة — نسخة الجوال (v21)</h1>
+  <div class="sub">المالك: <b>عبد الله أبو عوض</b></div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="row">
+      <div class="col">
+        <label for="storeSelect">المحل</label>
+        <select id="storeSelect" onchange="changeStore()">
+          <option value="store1">روان بيبي</option>
+          <option value="store2">جنتل بيبي عبود</option>
+          <option value="store3">بسطة</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <section class="card" data-tab="input">
+    <h3>تسجيل المبيعات</h3>
+    <div class="row">
+      <div class="col"><input type="number" id="saleAmount" placeholder="المبلغ"></div>
+      <div class="col">
+        <select id="saleType">
+          <option value="كاش">كاش</option>
+          <option value="بنك">بنك</option>
+        </select>
+      </div>
+    </div>
+    <input type="text" id="saleNote" class="slim" placeholder="ملاحظات (صنف/اسم المشتري/جوال) — اختياري">
+    <button class="btn btn-success" onclick="addSale()">إضافة بيع</button>
+    <div class="list" id="recentSales"></div>
+  </section>
+
+  <section class="card" data-tab="input">
+    <h3>تسجيل المصاريف</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="expenseDesc" placeholder="نوع المصروف"></div>
+      <div class="col"><input type="number" id="expenseAmount" placeholder="المبلغ"></div>
+      <div class="col">
+        <select id="expenseType">
+          <option value="كاش">كاش</option>
+          <option value="بنك">بنك</option>
+        </select>
+      </div>
+    </div>
+    <input type="text" id="expenseNote" class="slim" placeholder="ملاحظات (اختياري)">
+
+    <div class="subtle">
+      <div class="inline" style="margin-bottom:6px">
+        <input type="checkbox" id="expenseIsTrader" onchange="toggleExpenseTrader(this.checked)">
+        <label for="expenseIsTrader"><b>اعتبارها سداد لتاجر</b></label>
+      </div>
+      <div class="row" id="expenseTraderRow" style="display:none">
+        <div class="col">
+          <label>التاجر</label>
+          <select id="expenseTrader"></select>
+        </div>
+        <div class="col">
+          <input type="text" id="expenseTraderNote" class="slim" placeholder="ملاحظة السداد للتاجر (اختياري)">
+        </div>
+      </div>
+      <div class="hint">عند التفعيل، يُخصم نفس مبلغ المصروف من رصيد التاجر تلقائيًا (حسب نوع الدفع كاش/بنك).</div>
+    </div>
+
+    <div class="subtle">
+      <div class="inline" style="margin-bottom:6px">
+        <input type="checkbox" id="expenseIsLoan" onchange="toggleExpenseLoan(this.checked)">
+        <label for="expenseIsLoan"><b>اعتبارها دفعة من سلفة</b> (كاش فقط)</label>
+      </div>
+      <div class="row" id="expenseLoanRow" style="display:none">
+        <div class="col">
+          <label>المُسلف</label>
+          <select id="expenseLoanPerson"></select>
+        </div>
+        <div class="col">
+          <input type="text" id="expenseLoanNote" class="slim" placeholder="ملاحظة السلفة (اختياري)">
+        </div>
+      </div>
+      <div class="hint">عند التفعيل: يُخصم المبلغ من رصيد هذا المُسلف، ويُسجل المصروف كالمعتاد في تقارير اليوم.</div>
+    </div>
+
+    <button class="btn btn-success" onclick="addExpense()">إضافة مصروف</button>
+    <div class="list" id="recentExpenses"></div>
+  </section>
+
+  <section class="card" data-tab="daily">
+    <h3>التقرير اليومي (المحل الحالي)</h3>
+    <div class="row">
+      <div class="col"><input type="date" id="r_date"></div>
+      <div class="col"><button class="btn btn-primary" onclick="generateReport()">عرض التقرير</button></div>
+    </div>
+    <div id="dailyKPI" class="kpi" style="display:none">
+      <div class="box"><b id="k_cash_sales">0</b><span>مبيعات كاش</span></div>
+      <div class="box"><b id="k_bank_sales">0</b><span>مبيعات بنك</span></div>
+      <div class="box"><b id="k_cash_exp">0</b><span>مصروفات كاش</span></div>
+      <div class="box"><b id="k_bank_exp">0</b><span>مصروفات بنك</span></div>
+    </div>
+    <div id="dailyReport"></div>
+  </section>
+
+  <section class="card" data-tab="traders">
+    <h3>التُجّار</h3>
+    <div class="subtle">
+      <h4>إضافة تاجر</h4>
+      <div class="row">
+        <div class="col"><input type="text" id="t_name" placeholder="اسم التاجر"></div>
+        <div class="col"><input type="text" id="t_phone" placeholder="جوال (اختياري)"></div>
+      </div>
+      <button class="btn btn-success" onclick="addTrader()">➕ إضافة</button>
+    </div>
+    <div class="subtle">
+      <h4>شراء بضاعة</h4>
+      <div class="row">
+        <div class="col"><label>التاجر</label><select id="p_trader"></select></div>
+        <div class="col"><input type="number" id="p_total" placeholder="قيمة الفاتورة"></div>
+      </div>
+      <div class="row">
+        <div class="col"><input type="number" id="p_from_shop_cash" placeholder="دفعة من كاش المحل"></div>
+        <div class="col"><input type="number" id="p_from_shop_bank" placeholder="دفعة من بنك المحل"></div>
+      </div>
+      <div class="row">
+        <div class="col"><input type="number" id="p_from_owner_cash" placeholder="دفعة من صندوق المالك"></div>
+      </div>
+      <input type="text" id="p_note" class="slim" placeholder="ملاحظات (رقم فاتورة/تفاصيل) — اختياري">
+      <button class="btn btn-primary" onclick="purchaseFromTrader()">🧾 تسجيل شراء</button>
+      <div class="hint">من كاش المحل ⇒ مصروف كاش، من بنك المحل ⇒ مصروف بنك، من صندوق المالك ⇒ خصم من صندوق المالك. الباقي دين على التاجر.</div>
+    </div>
+    <div class="subtle">
+      <h4>سداد تاجر (لاحق)</h4>
+      <div class="row">
+        <div class="col"><label>التاجر</label><select id="pay_trader"></select></div>
+        <div class="col">
+          <select id="pay_source">
+            <option value="shop_cash">من كاش المحل</option>
+            <option value="shop_bank">من بنك المحل</option>
+            <option value="owner_cash">من صندوق المالك</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col"><input type="number" id="pay_amount" placeholder="المبلغ"></div>
+        <div class="col"><input type="text" id="pay_note" placeholder="ملاحظات (اختياري)" class="slim"></div>
+      </div>
+      <button class="btn btn-muted" onclick="payTrader()">💸 تسجيل سداد</button>
+    </div>
+    <div class="subtle">
+      <h4>كشف حساب تاجر</h4>
+      <div class="row"><div class="col"><select id="s_trader" onchange="renderTraderStatement()"></select></div></div>
+      <div id="traderStatement"></div>
+    </div>
+    <div class="subtle">
+      <h4>قائمة التُجار وأرصدتهم</h4>
+      <div id="tradersList"></div>
+    </div>
+  </section>
+
+  <section class="card" data-tab="loans">
+    <h3>السُلف</h3>
+    <div class="subtle">
+      <h4>إضافة مُسلف</h4>
+      <div class="row">
+        <div class="col"><input type="text" id="l_name" placeholder="اسم المُسلف"></div>
+        <div class="col"><input type="text" id="l_phone" placeholder="جوال (اختياري)"></div>
+      </div>
+      <button class="btn btn-success" onclick="addLender()">➕ إضافة</button>
+    </div>
+    <div class="subtle">
+      <h4>أخذ سلفة (كاش)</h4>
+      <div class="row">
+        <div class="col"><label>المُسلف</label><select id="loan_person"></select></div>
+        <div class="col"><input type="number" id="loan_amount" placeholder="المبلغ"></div>
+      </div>
+      <input type="text" id="loan_note" class="slim" placeholder="ملاحظات (اختياري)">
+      <button class="btn btn-primary" onclick="takeLoan()">💵 تسجيل سلفة</button>
+    </div>
+    <div class="subtle">
+      <h4>سداد سلفة</h4>
+      <div class="row">
+        <div class="col"><label>المُسلف</label><select id="repay_person"></select></div>
+        <div class="col"><input type="number" id="repay_amount" placeholder="المبلغ"></div>
+      </div>
+      <input type="text" id="repay_note" class="slim" placeholder="ملاحظات (اختياري)">
+      <button class="btn btn-muted" onclick="repayLoan()">↩️ تسجيل سداد</button>
+    </div>
+    <div class="subtle">
+      <h4>قائمة المُسلفين وأرصدتهم</h4>
+      <div id="lendersList"></div>
+    </div>
+    <div class="subtle">
+      <h4>كشف حساب مُسلف</h4>
+      <div class="row"><div class="col"><select id="l_stmt_person" onchange="renderLenderStatement()"></select></div></div>
+      <div id="lenderStatement"></div>
+    </div>
+  </section>
+
+  <section class="card" data-tab="agg">
+    <h3>تقرير مجمّع (جميع المحلات)</h3>
+    <div class="row">
+      <div class="col"><input type="date" id="agg_date"></div>
+      <div class="col"><button class="btn btn-primary" onclick="generateAggregateDaily()">عرض التقرير</button></div>
+    </div>
+    <div id="aggregateReport"></div>
+  </section>
+
+</main>
+
+<nav class="tabs">
+  <div class="tab active"><button onclick="showTab('input')">إدخال</button></div>
+  <div class="tab"><button onclick="showTab('daily')">يومي</button></div>
+  <div class="tab"><button onclick="showTab('traders')">تُجّار</button></div>
+  <div class="tab"><button onclick="showTab('loans')">السُلف</button></div>
+  <div class="tab"><button onclick="showTab('agg')">مجمّع</button></div>
+</nav>
+
+<script>
+let currentStore='store1';
+function changeStore(){ currentStore=document.getElementById('storeSelect').value; renderLists(); }
+function labelOf(id){ return id==='store1'?'روان بيبي':id==='store2'?'جنتل بيبي عبود':'بسطة'; }
+function getData(store=currentStore){ return JSON.parse(localStorage.getItem(store)||'{"sales":[],"expenses":[]}'); }
+function saveData(d){ localStorage.setItem(currentStore, JSON.stringify(d)); }
+function getOwnerLedger(){ return JSON.parse(localStorage.getItem('owner_cash_ledger')||'[]'); }
+function saveOwnerLedger(a){ localStorage.setItem('owner_cash_ledger', JSON.stringify(a)); }
+function getTraders(){ return JSON.parse(localStorage.getItem('traders')||'{"list":[]}'); }
+function saveTraders(v){ localStorage.setItem('traders', JSON.stringify(v)); }
+function getLoans(){ return JSON.parse(localStorage.getItem('loans')||'{"list":[]}'); }
+function saveLoans(v){ localStorage.setItem('loans', JSON.stringify(v)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+function addSale(){ const a=parseFloat(saleAmount.value),t=saleType.value,n=(saleNote.value||'').trim(); if(!a){alert('أدخل مبلغ صالح');return;} const d=getData(); d.sales.push({id:uid(),date:new Date().toLocaleDateString(),type:t,amount:a,note:n}); saveData(d); saleAmount.value=''; saleNote.value=''; renderLists(); }
+
+function toggleExpenseTrader(on){ document.getElementById('expenseTraderRow').style.display = on?'flex':'none'; if(on) refreshTraderSelects(); }
+function toggleExpenseLoan(on){ document.getElementById('expenseLoanRow').style.display = on?'flex':'none'; if(on) refreshLoanSelects(); }
+
+function addExpense(){
+  const desc=expenseDesc.value,a=parseFloat(expenseAmount.value),t=expenseType.value,n=(expenseNote.value||'').trim();
+  if(!desc||!a){alert('أدخل تفاصيل صحيحة');return;}
+  const d=getData();
+  d.expenses.push({id:uid(),date:new Date().toLocaleDateString(),desc:desc,type:t,amount:a,note:n});
+  saveData(d);
+
+  if(document.getElementById('expenseIsTrader').checked){
+    const tid = (document.getElementById('expenseTrader')||{}).value;
+    const data=getTraders(); const tr=data.list.find(x=>x.id===tid);
+    if(tr){
+      const payShopCash = (t==='كاش') ? a : 0;
+      const payShopBank = (t==='بنك') ? a : 0;
+      const noteTrader = (document.getElementById('expenseTraderNote').value||'سداد تاجر عبر شاشة المصاريف') + (n?` — (${n})`:'');
+      const newBal = Math.max(0,(tr.balance||0)-a);
+      tr.balance = newBal;
+      (tr.ledger||(tr.ledger=[])).push({id:uid(), type:'payment', date:new Date().toLocaleDateString(), amount:a, pay_shop_cash:payShopCash, pay_shop_bank:payShopBank, pay_owner_cash:0, note:noteTrader, balance_after:newBal});
+      saveTraders(data);
+    }
+  }
+
+  if(document.getElementById('expenseIsLoan').checked){
+    const lid = (document.getElementById('expenseLoanPerson')||{}).value;
+    const loans=getLoans(); const L=loans.list.find(x=>x.id===lid);
+    if(L){
+      L.used = (L.used||0) + a;
+      (L.ledger||(L.ledger=[])).push({id:uid(), type:'use', date:new Date().toLocaleDateString(), amount:a, note:(document.getElementById('expenseLoanNote').value||'استخدام سلفة للمصروف') + (n?` — (${n})`:''), used_after:L.used, advanced_total:L.advanced||0, repaid_total:L.repaid||0});
+      saveLoans(loans);
+    }
+  }
+
+  expenseDesc.value=''; expenseAmount.value=''; expenseNote.value='';
+  const etn=document.getElementById('expenseTraderNote'); if(etn) etn.value='';
+  document.getElementById('expenseIsTrader').checked=false; toggleExpenseTrader(false);
+  const eln=document.getElementById('expenseLoanNote'); if(eln) eln.value='';
+  document.getElementById('expenseIsLoan').checked=false; toggleExpenseLoan(false);
+
+  renderLists();
+}
+
+function generateReport(){
+  const date=r_date.value||new Date().toISOString().slice(0,10); r_date.value=date;
+  const key=new Date(date).toLocaleDateString(),d=getData();
+  const s=d.sales.filter(x=>x.date===key),e=d.expenses.filter(x=>x.date===key);
+  const cs=s.filter(x=>x.type==='كاش').reduce((a,b)=>a+b.amount,0),
+        bs=s.filter(x=>x.type==='بنك').reduce((a,b)=>a+b.amount,0),
+        ce=e.filter(x=>x.type==='كاش').reduce((a,b)=>a+b.amount,0),
+        be=e.filter(x=>x.type==='بنك').reduce((a,b)=>a+b.amount,0);
+  const profit=cs+bs-(ce+be);
+  k_cash_sales.textContent=cs; k_bank_sales.textContent=bs; k_cash_exp.textContent=ce; k_bank_exp.textContent=be; dailyKPI.style.display='grid';
+  const salesRows=s.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.amount}</td><td>${x.note||''}</td></tr>`).join('')||'<tr><td colspan="4">لا توجد مبيعات اليوم</td></tr>';
+  const expRows=e.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.desc}</td><td>${x.amount}</td><td>${x.note||''}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد مصاريف اليوم</td></tr>';
+  dailyReport.innerHTML=`<div class="hint">المحل: <b>${labelOf(currentStore)}</b> — التاريخ: <b>${new Date(date).toLocaleDateString()}</b></div>
+  <div class="summary">الربح الصافي: ${profit}</div>
+  <div class="subtle">
+    <details open><summary>تفاصيل المبيعات</summary>
+      <table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${salesRows}</tbody></table>
+    </details>
+    <details open><summary>تفاصيل المصاريف</summary>
+      <table><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${expRows}</tbody></table>
+    </details>
+  </div>`;
+}
+
+// Traders
+function refreshTraderSelects(){ const v=getTraders().list; const sels=[p_trader, pay_trader, s_trader, expenseTrader]; sels.forEach(sel=>{ if(!sel) return; sel.innerHTML = v.length? v.map(o=>`<option value="${o.id}">${o.name}</option>`).join('') : '<option value="">— لا يوجد تُجّار —</option>'; }); }
+function renderTradersList(){ const v=getTraders().list; tradersList.innerHTML = v.length? v.map(o=>`<div class="item"><div class="meta"><b>${o.name}</b> ${o.phone?`— ${o.phone}`:''}</div><b>الرصيد: ${o.balance||0}</b></div>`).join('') : '<div class="hint">لا يوجد تُجّار</div>'; }
+function renderTraderStatement(){ const tid = s_trader.value; const data=getTraders(); const t=data.list.find(x=>x.id===tid); if(!t){ traderStatement.innerHTML = '<div class="hint">اختر تاجر</div>'; return; } let rows = (t.ledger||[]).map(e=>`<tr><td>${e.date}</td><td>${e.type==='purchase'?'شراء':'سداد'}</td><td>${e.note||''}</td><td>${e.amount}</td><td>${e.pay_shop_cash||0}</td><td>${e.pay_shop_bank||0}</td><td>${e.pay_owner_cash||0}</td><td>${e.balance_after}</td></tr>`).join(''); if(!rows) rows = '<tr><td colspan="8">لا يوجد حركات</td></tr>'; traderStatement.innerHTML = `<div class="hint">الرصيد الحالي: <b>${t.balance||0}</b></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>ملاحظة</th><th>القيمة</th><th>مدفوع من كاش المحل</th><th>مدفوع من بنك المحل</th><th>مدفوع من صندوق المالك</th><th>الرصيد بعد العملية</th></tr></thead><tbody>${rows}</tbody></table>`; }
+function renderTradersUI(){ refreshTraderSelects(); renderTradersList(); renderTraderStatement(); }
+function addTrader(){ const name=(t_name.value||'').trim(), phone=(t_phone.value||'').trim(); if(!name){ alert('أدخل اسم التاجر'); return; } const data=getTraders(); data.list.push({id:uid(), name, phone, balance:0, ledger:[]}); saveTraders(data); t_name.value=''; t_phone.value=''; renderTradersUI(); }
+function purchaseFromTrader(){
+  const tid=p_trader.value, total=parseFloat(p_total.value)||0;
+  const fromShopCash=parseFloat(p_from_shop_cash.value)||0;
+  const fromShopBank=parseFloat(p_from_shop_bank.value)||0;
+  const fromOwnerCash=parseFloat(p_from_owner_cash.value)||0;
+  const note=(p_note.value||'').trim();
+  if(!tid){ alert('اختر التاجر'); return; }
+  if(total<=0){ alert('أدخل قيمة فاتورة صحيحة'); return; }
+  if(fromShopCash+fromShopBank+fromOwnerCash > total){ alert('مجموع الدفعات أكبر من قيمة الفاتورة'); return; }
+  const remain = total - (fromShopCash+fromShopBank+fromOwnerCash);
+  const tdata=getTraders(); const t = tdata.list.find(x=>x.id===tid);
+  const newBal = (t.balance||0) + remain; t.balance = newBal;
+  (t.ledger||(t.ledger=[])).push({id:uid(), type:'purchase', date:new Date().toLocaleDateString(), amount:total, pay_shop_cash:fromShopCash, pay_shop_bank:fromShopBank, pay_owner_cash:fromOwnerCash, note, balance_after:newBal});
+  saveTraders(tdata);
+  if(fromShopCash>0){ const d=getData(); d.expenses.push({id:uid(), date:new Date().toLocaleDateString(), desc:`شراء بضاعة من ${t.name}`, type:'كاش', amount:fromShopCash, note:'دفعة من كاش المحل'}); saveData(d); }
+  if(fromShopBank>0){ const d=getData(); d.expenses.push({id:uid(), date:new Date().toLocaleDateString(), desc:`شراء بضاعة من ${t.name}`, type:'بنك', amount:fromShopBank, note:'دفعة من بنك المحل'}); saveData(d); }
+  if(fromOwnerCash>0){ const l=getOwnerLedger(); l.push({id:uid(), kind:'use', date:new Date().toLocaleDateString(), shop:'-', amount:fromOwnerCash, note:`دفعة تاجر (${t.name}) من صندوق المالك`, batch_id:null}); saveOwnerLedger(l); }
+  p_total.value=''; p_from_shop_cash.value=''; p_from_shop_bank.value=''; p_from_owner_cash.value=''; p_note.value=''; renderLists(); alert('تم تسجيل شراء البضاعة. الباقي للتاجر: '+remain);
+}
+function payTrader(){
+  const tid=pay_trader.value, source=pay_source.value, amount=parseFloat(pay_amount.value)||0, note=(pay_note.value||'').trim();
+  if(!tid){ alert('اختر التاجر'); return; }
+  if(amount<=0){ alert('أدخل مبلغ صحيح'); return; }
+  const tdata=getTraders(); const t=tdata.list.find(x=>x.id===tid); if(!t){ alert('تاجر غير موجود'); return; }
+  let payShopCash=0, payShopBank=0, payOwnerCash=0; if(source==='shop_cash') payShopCash=amount; if(source==='shop_bank') payShopBank=amount; if(source==='owner_cash') payOwnerCash=amount;
+  const newBal=Math.max(0,(t.balance||0)-amount); t.balance=newBal;
+  (t.ledger||(t.ledger=[])).push({id:uid(), type:'payment', date:new Date().toLocaleDateString(), amount:amount, pay_shop_cash:payShopCash, pay_shop_bank:payShopBank, pay_owner_cash:payOwnerCash, note, balance_after:newBal});
+  saveTraders(tdata);
+  if(payShopCash>0){ const d=getData(); d.expenses.push({id:uid(), date:new Date().toLocaleDateString(), desc:`سداد تاجر ${t.name}`, type:'كاش', amount:payShopCash, note:note||'سداد من كاش المحل'}); saveData(d); }
+  if(payShopBank>0){ const d=getData(); d.expenses.push({id:uid(), date:new Date().toLocaleDateString(), desc:`سداد تاجر ${t.name}`, type:'بنك', amount:payShopBank, note:note||'سداد من بنك المحل'}); saveData(d); }
+  if(payOwnerCash>0){ const l=getOwnerLedger(); l.push({id:uid(), kind:'use', date:new Date().toLocaleDateString(), shop:'-', amount:payOwnerCash, note:note||`سداد تاجر (${t.name}) من صندوق المالك`, batch_id:null}); saveOwnerLedger(l); }
+  pay_amount.value=''; pay_note.value=''; renderLists(); alert('تم تسجيل السداد. الرصيد المتبقي: '+newBal);
+}
+
+// Loans
+function refreshLoanSelects(){ const v=getLoans().list; const sels=[loan_person, repay_person, l_stmt_person, expenseLoanPerson]; sels.forEach(sel=>{ if(!sel) return; sel.innerHTML = v.length? v.map(o=>`<option value="${o.id}">${o.name}</option>`).join('') : '<option value="">— لا يوجد مُسلفون —</option>'; }); }
+function renderLendersList(){ const v=getLoans().list; lendersList.innerHTML = v.length? v.map(o=>{ const adv=o.advanced||0, used=o.used||0, rep=o.repaid||0; const stillOnUs = adv - rep; const remainingCash = Math.max(0, adv - used); return `<div class="item"><div class="meta"><b>${o.name}</b> ${o.phone?`— ${o.phone}`:''}</div><div><div>علينا الآن: <b>${stillOnUs}</b></div><div class="hint">المتبقي من السلفة غير المستخدم: ${remainingCash}</div></div></div>`; }).join('') : '<div class="hint">لا يوجد مُسلفون</div>'; }
+function renderLenderStatement(){ const id = (l_stmt_person||{}).value; const data=getLoans(); const L=data.list.find(x=>x.id===id); if(!L){ lenderStatement.innerHTML = '<div class="hint">اختر مُسلف</div>'; return; } let rows = (L.ledger||[]).map(e=>`<tr><td>${e.date}</td><td>${e.type==='advance'?'سلفة':e.type==='repay'?'سداد':'استخدام'}</td><td>${e.note||''}</td><td>${e.amount}</td></tr>`).join(''); if(!rows) rows = '<tr><td colspan="4">لا يوجد حركات</td></tr>'; const adv=L.advanced||0, used=L.used||0, rep=L.repaid||0; const stillOnUs = adv - rep; const remainingCash = Math.max(0, adv - used); lenderStatement.innerHTML = `<div class="hint">علينا الآن: <b>${stillOnUs}</b> — المتبقي غير مستخدم: <b>${remainingCash}</b></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>ملاحظة</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table>`; }
+function renderLoansUI(){ refreshLoanSelects(); renderLendersList(); renderLenderStatement(); }
+function addLender(){ const name=(l_name.value||'').trim(), phone=(l_phone.value||'').trim(); if(!name){ alert('أدخل اسم المُسلف'); return; } const data=getLoans(); data.list.push({id:uid(), name, phone, advanced:0, used:0, repaid:0, ledger:[]}); saveLoans(data); l_name.value=''; l_phone.value=''; renderLoansUI(); }
+function takeLoan(){ const id=(loan_person.value||''), amount=parseFloat(loan_amount.value)||0, note=(loan_note.value||'').trim(); if(!id){ alert('اختر المُسلف'); return; } if(amount<=0){ alert('أدخل مبلغ صحيح'); return; } const data=getLoans(); const L=data.list.find(x=>x.id===id); L.advanced = (L.advanced||0) + amount; (L.ledger||(L.ledger=[])).push({id:uid(), type:'advance', date:new Date().toLocaleDateString(), amount:amount, note:note}); saveLoans(data); loan_amount.value=''; loan_note.value=''; renderLoansUI(); alert('تم تسجيل السلفة.'); }
+function repayLoan(){ const id=(repay_person.value||''), amount=parseFloat(repay_amount.value)||0, note=(repay_note.value||'').trim(); if(!id){ alert('اختر المُسلف'); return; } if(amount<=0){ alert('أدخل مبلغ صحيح'); return; } const data=getLoans(); const L=data.list.find(x=>x.id===id); L.repaid = (L.repaid||0) + amount; (L.ledger||(L.ledger=[])).push({id:uid(), type:'repay', date:new Date().toLocaleDateString(), amount:amount, note:note}); saveLoans(data); repay_amount.value=''; repay_note.value=''; renderLoansUI(); alert('تم تسجيل السداد.'); }
+
+function generateAggregateDaily(){ const di=agg_date.value||new Date().toISOString().slice(0,10); const key=new Date(di).toLocaleDateString(); const shops=['store1','store2','store3']; let html=''; let tot={cs:0,bs:0,ce:0,be:0,net:0}; html+='<table><thead><tr><th>المحل</th><th>مبيعات كاش</th><th>مبيعات بنك</th><th>مصروفات كاش</th><th>مصروفات بنك</th><th>صافي</th></tr></thead><tbody>'; shops.forEach(st=>{ const d=getData(st); const cs=d.sales.filter(x=>x.date===key&&x.type==='كاش').reduce((a,b)=>a+b.amount,0); const bs=d.sales.filter(x=>x.date===key&&x.type==='بنك').reduce((a,b)=>a+b.amount,0); const ce=d.expenses.filter(x=>x.date===key&&x.type==='كاش').reduce((a,b)=>a+b.amount,0); const be=d.expenses.filter(x=>x.date===key&&x.type==='بنك').reduce((a,b)=>a+b.amount,0); const net=cs+bs-(ce+be); html+=`<tr><td>${labelOf(st)}</td><td>${cs}</td><td>${bs}</td><td>${ce}</td><td>${be}</td><td>${net}</td></tr>`; tot.cs+=cs; tot.bs+=bs; tot.ce+=ce; tot.be+=be; tot.net+=net; }); html+=`</tbody><tfoot><tr><th>المجموع</th><th>${tot.cs}</th><th>${tot.bs}</th><th>${tot.ce}</th><th>${tot.be}</th><th>${tot.net}</th></tr></tfoot></table>`; aggregateReport.innerHTML = html; }
+
+function renderLists(){ const d=getData(); const rs=d.sales.slice(-10).reverse(); const re=d.expenses.slice(-10).reverse(); recentSales.innerHTML=rs.map(v=>`<div class="item"><div class="meta"><span>${v.date} – ${v.type}${v.note?` — <i>${v.note}</i>`:''}</span></div><b>${v.amount}</b></div>`).join('')||'<div class="hint">لا توجد مبيعات بعد</div>'; recentExpenses.innerHTML=re.map(v=>`<div class="item"><div class="meta"><span>${v.date} – ${v.type} – ${v.desc}${v.note?` — <i>${v.note}</i>`:''}</span></div><b>${v.amount}</b></div>`).join('')||'<div class="hint">لا توجد مصاريف بعد</div>'; renderTradersUI(); renderLoansUI(); }
+function showTab(name){ document.querySelectorAll('[data-tab]').forEach(sec=>{sec.style.display=(sec.getAttribute('data-tab')===name)?'block':'none';}); const keys=['input','daily','traders','loans','agg']; document.querySelectorAll('.tabs .tab').forEach((t,i)=>{ t.classList.toggle('active', keys[i]===name);}); if(name==='input'){ renderLists(); } if(name==='traders'){ renderTradersUI(); } if(name==='loans'){ renderLoansUI(); } }
+document.addEventListener('DOMContentLoaded', ()=>{ const today=new Date().toISOString().slice(0,10); const r=document.getElementById('r_date'); if(r) r.value=today; const a=document.getElementById('agg_date'); if(a) a.value=today; if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); showTab('input'); renderLists(); });
+</script>
+</body>
+</html>
